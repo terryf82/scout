@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -11,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
@@ -70,6 +70,8 @@ func main() {
 			result, err := transaction.Run(
 				strings.Join([]string{
 					"MERGE (d:Domain{id:$domain})",
+					"ON CREATE SET d.first_seen = datetime()", // first_checked && last_checked?
+					"ON MATCH SET d.last_seen = datetime()",
 					"RETURN d",
 				}, " "),
 				map[string]interface{}{
@@ -97,44 +99,52 @@ func main() {
 			log.Fatal(err)
 		}
 
-		// subdomainsPath := fmt.Sprintf("./programs/%v/subdomains", *dbPtr)
-		// subdomainsFile := fmt.Sprintf("%v/%v.csv", subdomainsPath, newDomain)
-		// os.MkdirAll(subdomainsPath, 0755)
-
-		// outfile, err := os.Create(subdomainsFile)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-
-		// defer outfile.Close()
-		// cmd.Stdout = outfile
-
-		// .Run() is blocking, no need to use .Wait()
 		fmt.Printf("-> %v\n", fdCmd)
 		fdCmd.Start()
-		// err = cmd.Run()
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
 
-		// Read the subdomains CSV back in for processing
-		// A pipe could simplify this, and speed up the process
-		// f, err := os.Open(subdomainsFile)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-
-		// r := csv.NewReader(f)
 		fdCmdBuf := bufio.NewReader(fdCmdOut)
 		for {
-			// row, err := r.Read()
 			line, _, err := fdCmdBuf.ReadLine()
 			if err == io.EOF {
 				break
 			}
 
+			// fmt.Printf("findomain produced (raw): %v\n", line)
+			// fmt.Printf("findomain produced (string): %v\n", string(line))
+
 			// Transform the line into a csv row
 			row := strings.Split(string(line), ",")
+
+			// Skip "Chromium/Chrome is correctly installed, performing enumeration!" output line
+			if row[0] == "Chromium/Chrome is correctly installed" {
+				continue
+			}
+
+			// Call httpx on the subdomain
+			httpxCmd := fmt.Sprintf("echo %s | httpx -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 Firefox/88.0\" -silent -json", row[0])
+			httpxOut, err := exec.Command("bash", "-c", httpxCmd).Output()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// fmt.Printf("raw: %s\n", string(httpxOut))
+
+			type httpxResponse struct {
+				Scheme string
+				Port   string // Should be int?
+				Path   string
+				// Url         string
+				Title       string
+				Webserver   string
+				ContentType string `json:"content-type"`
+				Method      string
+				Host        string
+				StatusCode  int16 `json:"status-code"`
+			}
+
+			var resp httpxResponse
+			// Hackish approach here of casting byte[] httpxOut to a string to achieve base64-decoding, before converting it back to byte[]
+			json.Unmarshal([]byte(string(httpxOut)), &resp)
 
 			// Not a real subdomain, record data against domain node
 			if row[0] == newDomain {
@@ -142,18 +152,26 @@ func main() {
 				_, err = session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
 					result, err := transaction.Run(
 						strings.Join([]string{
-							"MATCH (d:Domain{id:$subdomain})",
-							"SET d.url = $url",
+							"MATCH (d:Domain{id:$domain})",
+							"SET d.last_seen = datetime(), d.url = $url, d.scheme = $scheme, d.port = $port, d.path = $path, d.title = $title, d.webserver = $webserver, d.content_type = $content_type, d.method = $method, d.host = $host, d.status_code = $status_code",
 							"MERGE (i:Ip{id:$ip})",
 							"WITH d, i",
 							"MERGE (d)-[:IS_HOSTED_AT]->(i)",
 							"RETURN d",
 						}, " "),
 						map[string]interface{}{
-							"subdomain": row[0],
-							"ip":        row[1],
-							"url":       row[2],
-							"domain":    newDomain,
+							"domain":       row[0],
+							"url":          row[2],
+							"scheme":       resp.Scheme,
+							"port":         resp.Port,
+							"path":         resp.Path,
+							"title":        resp.Title,
+							"webserver":    resp.Webserver,
+							"content_type": resp.ContentType,
+							"method":       resp.Method,
+							"host":         resp.Host,
+							"status_code":  resp.StatusCode,
+							"ip":           row[1],
 						})
 
 					if err != nil {
@@ -172,11 +190,6 @@ func main() {
 				continue
 			}
 
-			// Hack to skip "Chromium/Chrome is correctly installed, performing enumeration!" output line
-			if row[0] == "Chromium/Chrome is correctly installed" {
-				continue
-			}
-
 			fmt.Printf("- found subdomain %v / %v\n", row[0], row[1])
 			/*
 				row[0] = subdomain
@@ -189,16 +202,28 @@ func main() {
 				result, err := transaction.Run(
 					strings.Join([]string{
 						"MERGE (s:Subdomain{id:$subdomain})",
-						"SET s.url = $url",
+						"ON CREATE SET s.first_seen = datetime()",
+						"ON MATCH SET s.last_seen = datetime()",
+						"WITH s",
+						"SET s.url = $url, s.scheme = $scheme, s.port = $port, s.path = $path, s.title = $title, s.webserver = $webserver, s.content_type = $content_type, s.method = $method, s.host = $host, s.status_code = $status_code",
 						"WITH s",
 						"MATCH (d:Domain{id:$domain})",
 						"MERGE (s)-[:IS_PART_OF]->(d)",
 						"RETURN s",
 					}, " "),
 					map[string]interface{}{
-						"subdomain": row[0],
-						"url":       row[2],
-						"domain":    newDomain,
+						"subdomain":    row[0],
+						"url":          row[2],
+						"scheme":       resp.Scheme,
+						"port":         resp.Port,
+						"path":         resp.Path,
+						"title":        resp.Title,
+						"webserver":    resp.Webserver,
+						"content_type": resp.ContentType,
+						"method":       resp.Method,
+						"host":         resp.Host,
+						"status_code":  resp.StatusCode,
+						"domain":       newDomain,
 					})
 
 				if err != nil {
@@ -220,6 +245,8 @@ func main() {
 				result, err := transaction.Run(
 					strings.Join([]string{
 						"MERGE (i:Ip{id:$ip})",
+						"ON CREATE SET i.first_seen = datetime()",
+						"ON MATCH SET i.last_seen = datetime()",
 						"WITH i",
 						"MATCH (d:Domain{id:$domain}), (s:Subdomain{id:$subdomain})",
 						"MERGE (s)-[:IS_HOSTED_AT]->(i)",
