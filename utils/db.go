@@ -31,8 +31,7 @@ func WriteQuery(db string, query []string, params map[string]interface{}) (resul
 		Check(queryErr)
 
 		if result.Next() {
-			record := result.Record()
-			return record.GetByIndex(0), nil
+			return result.Record().Values[0], nil
 		}
 
 		return nil, result.Err()
@@ -61,7 +60,7 @@ func ReadList(db string, query []string, params map[string]interface{}) (interfa
 		}
 
 		for result.Next() {
-			rows = append(rows, result.Record().GetByIndex(0).(string))
+			rows = append(rows, result.Record().Values[0].(string))
 		}
 
 		// Guards against error encountered while iterating results?

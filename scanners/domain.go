@@ -46,7 +46,7 @@ func DomainScan(db string, filename string) {
 		// Call httpxScan() for the TLD
 		HttpxScan(db, tldomain)
 
-		fdCmd := exec.Command("findomain", "-t", tldomain, "-i", "--http-status", "-q", "-s", fmt.Sprintf("./programs/%v/screenshots", filename))
+		fdCmd := exec.Command("findomain", "-t", tldomain, "-i", "--http-status", "-q", "-s", fmt.Sprintf("./programs/%v/screenshots", db))
 
 		fdCmdOut, err := fdCmd.StdoutPipe()
 		utils.Check(err)

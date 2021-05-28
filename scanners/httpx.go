@@ -8,25 +8,25 @@ import (
 	"franklindata.com.au/scout/utils"
 )
 
+type httpxResponse struct {
+	Scheme      string
+	Port        string // Should be int?
+	Path        string
+	Url         string
+	Title       string
+	Webserver   string
+	ContentType string `json:"content-type"`
+	Method      string
+	Host        string
+	StatusCode  int16 `json:"status-code"`
+}
+
 // Call httpx on the specified domain
 func HttpxScan(db string, domain string) {
-	fmt.Printf("-> running httpx for %v\n", domain)
 	httpxCmd := fmt.Sprintf("echo %s | httpx -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 Firefox/88.0\" -silent -json", domain)
+	fmt.Printf("-> %s\n", httpxCmd)
 	httpxOut, err := exec.Command("bash", "-c", httpxCmd).Output()
 	utils.Check(err)
-
-	type httpxResponse struct {
-		Scheme      string
-		Port        string // Should be int?
-		Path        string
-		Url         string
-		Title       string
-		Webserver   string
-		ContentType string `json:"content-type"`
-		Method      string
-		Host        string
-		StatusCode  int16 `json:"status-code"`
-	}
 
 	var resp httpxResponse
 	// Hackish approach here of casting byte[] httpxOut to a string to achieve base64-decoding, before converting it back to byte[]
@@ -56,6 +56,8 @@ func HttpxScan(db string, domain string) {
 	)
 	utils.Check(err)
 
-	// Call nucleiScan() for the subdomain
-	NucleiScan(db, domain, resp.Webserver)
+	// Run nuclei for the subdomain's url if valid
+	if resp.Url != "" {
+		NucleiScan(db, resp.Url, resp.Webserver)
+	}
 }
