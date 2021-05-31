@@ -22,11 +22,20 @@ type httpxResponse struct {
 }
 
 // Call httpx on the specified domain
-func HttpxScan(db string, domain string) {
-	httpxCmd := fmt.Sprintf("echo %s | httpx -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 Firefox/88.0\" -silent -json", domain)
+func HttpxScan(db string, domain string, url string) {
+
+	httpxCmd := fmt.Sprintf("echo %s | httpx -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 Firefox/88.0\" -silent -json", url)
+
 	fmt.Printf("-> %s\n", httpxCmd)
+
 	httpxOut, err := exec.Command("bash", "-c", httpxCmd).Output()
+
 	utils.Check(err)
+
+	if len(httpxOut) == 0 {
+		fmt.Println("no response from httpx")
+		return
+	}
 
 	var resp httpxResponse
 	// Hackish approach here of casting byte[] httpxOut to a string to achieve base64-decoding, before converting it back to byte[]
@@ -37,8 +46,10 @@ func HttpxScan(db string, domain string) {
 		[]string{
 			"MATCH (d:Domain{id:$domain})",
 			"WITH d",
-			"SET d.url = $url, d.scheme = $scheme, d.port = $port, d.path = $path, d.title = $title, d.webserver = $webserver, d.content_type = $content_type, d.method = $method, d.host = $host, d.status_code = $status_code",
-			"RETURN d",
+			"MERGE (u:Url{id:$url})",
+			"SET u.scheme = $scheme, u.port = $port, u.path = $path, u.title = $title, u.webserver = $webserver, u.content_type = $content_type, u.method = $method, u.host = $host, u.status_code = $status_code",
+			"MERGE (u)-[:BELONGS_TO]->(d)",
+			"RETURN u",
 		},
 		map[string]interface{}{
 			"domain":       domain,
@@ -56,7 +67,7 @@ func HttpxScan(db string, domain string) {
 	)
 	utils.Check(err)
 
-	// Run nuclei for the subdomain's url if valid
+	// Run nuclei for the valid urls
 	if resp.Url != "" {
 		NucleiScan(db, resp.Url, resp.Webserver)
 	}

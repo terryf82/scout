@@ -44,7 +44,7 @@ func DomainScan(db string, filename string) {
 		utils.Check(err)
 
 		// Call httpxScan() for the TLD
-		HttpxScan(db, tldomain)
+		HttpxScan(db, tldomain, tldomain)
 
 		fdCmd := exec.Command("findomain", "-t", tldomain, "-i", "--http-status", "-q", "-s", fmt.Sprintf("./programs/%v/screenshots", db))
 
@@ -89,12 +89,13 @@ func DomainScan(db string, filename string) {
 					"MERGE (s:Subdomain:Domain{id:$subdomain})",
 					"ON CREATE SET s.first_seen = datetime()",
 					"ON MATCH SET s.last_seen = datetime()",
-					"WITH s",
-					"MERGE (i:Ip{id:$ip})",
-					"ON CREATE SET i.first_seen = datetime()",
-					"ON MATCH SET i.last_seen = datetime()",
-					"WITH s, i",
-					"MERGE (s)-[:IS_HOSTED_AT]->(i)",
+					// Ip data seems unreliable, disabling for now
+					// "WITH s",
+					// "MERGE (i:Ip{id:$ip})",
+					// "ON CREATE SET i.first_seen = datetime()",
+					// "ON MATCH SET i.last_seen = datetime()",
+					// "WITH s, i",
+					// "MERGE (s)-[:IS_HOSTED_AT]->(i)",
 					"WITH s",
 					"MATCH (d:Domain{id:$domain})",
 					"WITH s, d",
@@ -110,7 +111,7 @@ func DomainScan(db string, filename string) {
 			utils.Check(err)
 
 			// Run httpx scan for the subdomain
-			HttpxScan(db, row[0])
+			HttpxScan(db, row[0], row[0])
 		}
 	}
 

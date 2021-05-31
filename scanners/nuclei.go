@@ -45,7 +45,7 @@ func NucleiScan(db string, url string, webserver string) {
 	nucleiTags := strings.Join(response.([]string), ",")
 
 	if nucleiTags == "" {
-		fmt.Println("no compatible tags found")
+		fmt.Printf("- no compatible tags for %v\n", webserver)
 		return
 	}
 
@@ -56,7 +56,7 @@ func NucleiScan(db string, url string, webserver string) {
 	utils.Check(err)
 
 	if len(nucleiOut) == 0 {
-		fmt.Println("no response from nuclei")
+		// fmt.Println("no response from nuclei")
 		return
 	}
 
@@ -65,8 +65,24 @@ func NucleiScan(db string, url string, webserver string) {
 	// Hackish approach here of casting byte[] httpxOut to a string to achieve base64-decoding, before converting it back to byte[]
 	json.Unmarshal([]byte(string(nucleiOut)), &resp)
 
-	// fmt.Printf("as a single value: %v\n", strings.Join(nucleiTags, ","))
-	// for _, nt := range response.([]string) {
-	// 	fmt.Printf("run nuclei tag %v\n", nt)
-	// }
+	_, err = utils.WriteQuery(
+		db,
+		[]string{
+			"MATCH (u:Url{id:$url})",
+			"WITH u",
+			"CREATE (v:VulnReport)<-[:IS_VULNERABLE_TO]-(u)",
+			"SET v.template_id = $template_id, v.severity = $severity, v.type = $type, v.host = $host, v.matched = $matched, v.ip = $ip, v.discovered = datetime()",
+			"RETURN v",
+		},
+		map[string]interface{}{
+			"url":         url,
+			"template_id": resp.TemplateId,
+			"severity":    resp.Info.Severity,
+			"type":        resp.Type,
+			"host":        resp.Host,
+			"matched":     resp.Matched,
+			"ip":          resp.Ip,
+		},
+	)
+	utils.Check(err)
 }
