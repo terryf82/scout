@@ -10,7 +10,7 @@ var driver neo4j.Driver
 
 func init() {
 	var err error
-	driver, err = neo4j.NewDriver("neo4j://localhost", neo4j.BasicAuth(goDotEnvVar("NEO4J_USER"), goDotEnvVar("NEO4J_PASSWORD"), ""))
+	driver, err = neo4j.NewDriver(goDotEnvVar("NEO4J_SERVER_ADDRESS"), neo4j.BasicAuth(goDotEnvVar("NEO4J_USER"), goDotEnvVar("NEO4J_PASSWORD"), ""))
 	Check(err)
 }
 
