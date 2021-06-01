@@ -1,4 +1,4 @@
-package scanners
+package main
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"franklindata.com.au/scout/utils"
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 type NucleiResponse struct {
@@ -22,6 +23,11 @@ type NucleiResponse struct {
 	Matched   string
 	Ip        string
 	Timestamp string
+}
+
+func main() {
+	fmt.Println("scan-nuclei::main")
+	lambda.Start(NucleiScan)
 }
 
 func NucleiScan(db string, url string, webserver string) {

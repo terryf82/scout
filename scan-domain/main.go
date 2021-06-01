@@ -1,4 +1,4 @@
-package scanners
+package main
 
 import (
 	"bufio"
@@ -9,7 +9,13 @@ import (
 	"strings"
 
 	"franklindata.com.au/scout/utils"
+	"github.com/aws/aws-lambda-go/lambda"
 )
+
+func main() {
+	fmt.Println("scan-domain::main")
+	lambda.Start(DomainScan)
+}
 
 // Scan target TLDs for subdomains
 func DomainScan(db string, filename string) {
@@ -44,7 +50,8 @@ func DomainScan(db string, filename string) {
 		utils.Check(err)
 
 		// Call httpxScan() for the TLD
-		HttpxScan(db, tldomain, tldomain)
+		// HttpxScan(db, tldomain, tldomain)
+		// Send SQS
 
 		fdCmd := exec.Command("findomain", "-t", tldomain, "-i", "--http-status", "-q", "-s", fmt.Sprintf("./programs/%v/screenshots", db))
 
@@ -111,7 +118,8 @@ func DomainScan(db string, filename string) {
 			utils.Check(err)
 
 			// Run httpx scan for the subdomain
-			HttpxScan(db, row[0], row[0])
+			// HttpxScan(db, row[0], row[0])
+			// Send SQS
 		}
 	}
 

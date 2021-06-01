@@ -1,4 +1,4 @@
-package scanners
+package main
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"os/exec"
 
 	"franklindata.com.au/scout/utils"
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 type httpxResponse struct {
@@ -19,6 +20,11 @@ type httpxResponse struct {
 	Method      string
 	Host        string
 	StatusCode  int16 `json:"status-code"`
+}
+
+func main() {
+	fmt.Println("scan-httpx::main")
+	lambda.Start(HttpxScan)
 }
 
 // Call httpx on the specified domain
@@ -69,6 +75,7 @@ func HttpxScan(db string, domain string, url string) {
 
 	// Run nuclei for the valid urls
 	if resp.Url != "" {
-		NucleiScan(db, resp.Url, resp.Webserver)
+		// NucleiScan(db, resp.Url, resp.Webserver)
+		// Send SQS
 	}
 }
