@@ -1,4 +1,4 @@
-package main
+package scanners
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"os/exec"
 
 	"franklindata.com.au/scout/utils"
-	"github.com/aws/aws-lambda-go/lambda"
 )
 
 type httpxResponse struct {
@@ -22,13 +21,13 @@ type httpxResponse struct {
 	StatusCode  int16 `json:"status-code"`
 }
 
-func main() {
-	fmt.Println("scan-httpx::main")
-	lambda.Start(HttpxScan)
+func UrlScanHandler(payload string) error {
+	fmt.Printf("UrlScanHandler: %v\n", payload)
+	return nil
 }
 
 // Call httpx on the specified domain
-func HttpxScan(db string, domain string, url string) {
+func UrlScan(db string, domain string, url string) {
 
 	httpxCmd := fmt.Sprintf("echo %s | httpx -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 Firefox/88.0\" -silent -json", url)
 
