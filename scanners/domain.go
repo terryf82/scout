@@ -23,15 +23,14 @@ func init() {
 }
 
 func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
-
 	for _, message := range event.Records {
-		// Read the event
-		var domainRequest ScanDomainRequest
-		json.Unmarshal([]byte(message.Body), &domainRequest)
+		fmt.Printf("ScanDomainHandler: %v\n", message.Body)
+		var request ScanDomainRequest
+		json.Unmarshal([]byte(message.Body), &request)
 
-		// Merge the TLDomain node
+		// Merge the "TopLevelDomain" node
 		_, err := utils.WriteQuery(
-			domainRequest.Database,
+			request.Database,
 			[]string{
 				"MERGE (d:TopLevelDomain:Domain{id:$domain})",
 				"ON CREATE SET d.first_seen = datetime()", // first_checked && last_checked?
@@ -39,16 +38,17 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 				"RETURN d",
 			},
 			map[string]interface{}{
-				"domain": domainRequest.Domain,
+				"domain": request.Domain,
 			},
 		)
 		utils.Check(err)
+		fmt.Printf("TLDomain %v merged\n", request.Domain)
 
-		// Request url scan of domain
+		// Request scan of url (domain) via SQS
 		urlRequest := &ScanUrlRequest{
-			Database: domainRequest.Database,
-			Domain:   domainRequest.Domain,
-			Url:      domainRequest.Domain,
+			Database: request.Database,
+			Domain:   request.Domain,
+			Url:      request.Domain,
 		}
 		urlRequestJson, err := json.Marshal(urlRequest)
 		utils.Check(err)
@@ -58,15 +58,16 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 			QueueUrl:    aws.String(os.Getenv("SCAN_URL_QUEUE")),
 		})
 		utils.Check(err)
+		fmt.Printf("Requesting scan of domain 'url' %v\n", request.Domain)
 
 		// Find any subdomains
 		// TODO enable screenshot capture & s3 upload
-		// fdCmd := exec.Command("findomain", "-t", domainRequest.Domain, "-i", "--http-status", "-q", "-s", fmt.Sprintf("./programs/%v/screenshots", db))
-		fdCmd := exec.Command("findomain", "-t", domainRequest.Domain, "-i", "--http-status", "-q")
+		// fdCmd := exec.Command("findomain", "-t", request.Domain, "-i", "--http-status", "-q", "-s", fmt.Sprintf("./programs/%v/screenshots", db))
+		fdCmd := exec.Command("findomain", "-t", request.Domain, "-i", "--http-status", "-q")
+		fmt.Printf("-> %v\n", fdCmd)
 		fdCmdOut, err := fdCmd.StdoutPipe()
 		utils.Check(err)
 
-		fmt.Printf("-> %v\n", fdCmd)
 		fdCmd.Start()
 
 		fdCmdBuf := bufio.NewReader(fdCmdOut)
@@ -91,7 +92,7 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 			}
 
 			// Skip the TLD itself
-			if row[0] == domainRequest.Domain {
+			if row[0] == request.Domain {
 				fmt.Printf("- skipping TLD %v\n", row[0])
 				continue
 			}
@@ -99,7 +100,7 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 			// Merge subdomain and link to Domain
 			fmt.Printf("- found subdomain %v / %v\n", row[0], row[1])
 			_, err = utils.WriteQuery(
-				domainRequest.Database,
+				request.Database,
 				[]string{
 					"MERGE (s:Subdomain:Domain{id:$subdomain})",
 					"ON CREATE SET s.first_seen = datetime()",
@@ -120,15 +121,15 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 				map[string]interface{}{
 					"subdomain": row[0],
 					// "ip":        row[1],
-					"domain": domainRequest.Domain,
+					"domain": request.Domain,
 				},
 			)
 			utils.Check(err)
 
 			// Request url scan of subdomain
 			urlRequest := &ScanUrlRequest{
-				Database: domainRequest.Database,
-				Domain:   domainRequest.Domain,
+				Database: request.Database,
+				Domain:   request.Domain,
 				Url:      row[0],
 			}
 			urlRequestJson, err := json.Marshal(urlRequest)
@@ -139,6 +140,7 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 				QueueUrl:    aws.String(os.Getenv("SCAN_URL_QUEUE")),
 			})
 			utils.Check(err)
+			fmt.Printf("Requesting scan of subdomain 'url' %v\n", row[0])
 		}
 	}
 

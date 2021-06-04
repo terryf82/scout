@@ -19,3 +19,9 @@ type ScanUrlRequest struct {
 	Domain   string
 	Url      string
 }
+
+type ScanNucleiRequest struct {
+	Database  string
+	Url       string
+	Webserver string
+}
