@@ -128,7 +128,7 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 			// Request url scan of subdomain
 			urlRequest := &ScanUrlRequest{
 				Target: request.Target,
-				Domain: request.Domain,
+				Domain: row[0],
 				Url:    row[0],
 			}
 			urlRequestJson, err := json.Marshal(urlRequest)
