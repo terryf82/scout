@@ -30,11 +30,11 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 
 		// Merge the "TopLevelDomain" node
 		_, err := utils.WriteQuery(
-			request.Database,
+			"neo4j",
 			[]string{
-				"MERGE (d:TopLevelDomain:Domain{id:$domain})",
-				"ON CREATE SET d.first_seen = datetime()", // first_checked && last_checked?
-				"ON MATCH SET d.last_seen = datetime()",
+				"MERGE (d:Domain{id:$domain})",
+				"ON CREATE SET d:TopLevelDomain:" + request.Target + ", d.first_seen = datetime()",
+				"ON MATCH SET d:TopLevelDomain:" + request.Target + ", d.last_seen = datetime()",
 				"RETURN d",
 			},
 			map[string]interface{}{
@@ -46,9 +46,9 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 
 		// Request scan of url (domain) via SQS
 		urlRequest := &ScanUrlRequest{
-			Database: request.Database,
-			Domain:   request.Domain,
-			Url:      request.Domain,
+			Target: request.Target,
+			Domain: request.Domain,
+			Url:    request.Domain,
 		}
 		urlRequestJson, err := json.Marshal(urlRequest)
 		utils.Check(err)
@@ -99,11 +99,11 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 			// Merge subdomain and link to Domain
 			fmt.Printf("- found subdomain %v / %v\n", row[0], row[1])
 			_, err = utils.WriteQuery(
-				request.Database,
+				"neo4j",
 				[]string{
-					"MERGE (s:Subdomain:Domain{id:$subdomain})",
-					"ON CREATE SET s.first_seen = datetime()",
-					"ON MATCH SET s.last_seen = datetime()",
+					"MERGE (s:Domain{id:$subdomain})",
+					"ON CREATE SET s:Subdomain:" + request.Target + ", s.first_seen = datetime()",
+					"ON MATCH SET s:Subdomain:" + request.Target + ",s.last_seen = datetime()",
 					// Ip data seems unreliable, disabling for now
 					// "WITH s",
 					// "MERGE (i:Ip{id:$ip})",
@@ -127,9 +127,9 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 
 			// Request url scan of subdomain
 			urlRequest := &ScanUrlRequest{
-				Database: request.Database,
-				Domain:   request.Domain,
-				Url:      row[0],
+				Target: request.Target,
+				Domain: request.Domain,
+				Url:    row[0],
 			}
 			urlRequestJson, err := json.Marshal(urlRequest)
 			utils.Check(err)

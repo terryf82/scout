@@ -41,12 +41,12 @@ func ScanUrlHandler(ctx context.Context, event events.SQSEvent) error {
 		json.Unmarshal([]byte(string(httpxOut)), &resp)
 
 		_, err = utils.WriteQuery(
-			request.Database,
+			"neo4j",
 			[]string{
 				"MATCH (d:Domain{id:$domain})",
 				"WITH d",
 				"MERGE (u:Url{id:$url})",
-				"SET u.scheme = $scheme, u.port = $port, u.path = $path, u.title = $title, u.webserver = $webserver, u.content_type = $content_type, u.method = $method, u.host = $host, u.status_code = $status_code",
+				"SET u:" + request.Target + ", u.scheme = $scheme, u.port = $port, u.path = $path, u.title = $title, u.webserver = $webserver, u.content_type = $content_type, u.method = $method, u.host = $host, u.status_code = $status_code",
 				"MERGE (u)-[:BELONGS_TO]->(d)",
 				"RETURN u",
 			},
@@ -70,7 +70,7 @@ func ScanUrlHandler(ctx context.Context, event events.SQSEvent) error {
 		if resp.Url != "" {
 			fmt.Printf("Requesting nuclei scan of url %v\n", resp.Url)
 			nucleiRequest := &ScanNucleiRequest{
-				Database:  request.Database,
+				Target:    request.Target,
 				Url:       resp.Url,
 				Webserver: resp.Webserver,
 			}

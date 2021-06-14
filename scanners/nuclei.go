@@ -42,6 +42,10 @@ func ScanNucleiHandler(ctx context.Context, event events.SQSEvent) error {
 			return nil
 		}
 
+		ipOut, err := exec.Command("curl", "https://icanhazip.com").Output()
+		utils.Check(err)
+		fmt.Printf("initiaiting request from ip: %s\n", ipOut)
+
 		nucleiCmd := exec.Command("nuclei", "-u", request.Url, "-silent", "-json", "-tags", nucleiTags, "-ud", "/nuclei-templates", "-config", "/nuclei-custom.yaml")
 		// nucleiCmd := exec.Command("nuclei", "-u", request.Url, "-silent", "-json", "-tags", nucleiTags, "-ud", "/nuclei-moved", "-config", "/nuclei-custom.yaml", "-etags", "xss")
 		fmt.Printf("-> %v\n", nucleiCmd)
@@ -54,7 +58,7 @@ func ScanNucleiHandler(ctx context.Context, event events.SQSEvent) error {
 
 		err = nucleiCmd.Run()
 		// Additional error checking here, to avoid silent failures
-		if nucleiErr.Bytes() != nil {
+		if nucleiErr.String() != "" {
 			fmt.Printf("StdErr output: %v\n", nucleiErr.String())
 		}
 		utils.Check(err)
@@ -72,20 +76,21 @@ func ScanNucleiHandler(ctx context.Context, event events.SQSEvent) error {
 			json.Unmarshal([]byte(line), &resp)
 
 			_, err = utils.WriteQuery(
-				request.Database,
+				"neo4j",
 				[]string{
 					"MATCH (u:Url{id:$url})",
 					"WITH u",
-					"CREATE (u)-[:IS_VULNERABLE_TO]->(v:VulnReport)",
-					"SET v.template_id = $template_id, v.severity = $severity, v.type = $type, v.host = $host, v.matched = $matched, v.ip = $ip, v.discovered = datetime()",
+					"MERGE (v:VulnReport:" + request.Target + "{host:$host,template_id:$template_id})",
+					"MERGE (u)-[:IS_VULNERABLE_TO]->(v:VulnReport)",
+					"SET v.severity = $severity, v.type = $type, v.matched = $matched, v.ip = $ip, v.discovered = datetime()",
 					"RETURN v",
 				},
 				map[string]interface{}{
 					"url":         request.Url,
+					"host":        resp.Host,
 					"template_id": resp.TemplateId,
 					"severity":    resp.Info.Severity,
 					"type":        resp.Type,
-					"host":        resp.Host,
 					"matched":     resp.Matched,
 					"ip":          resp.Ip,
 				},

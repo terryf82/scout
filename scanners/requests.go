@@ -5,23 +5,23 @@ import "github.com/aws/aws-sdk-go/service/sqs"
 var sqsQueue *sqs.SQS
 
 type ScanTargetRequest struct {
-	Database string
-	Domains  []string
+	Target  string
+	Domains []string
 }
 
 type ScanDomainRequest struct {
-	Database string
-	Domain   string
+	Target string
+	Domain string
 }
 
 type ScanUrlRequest struct {
-	Database string
-	Domain   string
-	Url      string
+	Target string
+	Domain string
+	Url    string
 }
 
 type ScanNucleiRequest struct {
-	Database  string
+	Target    string
 	Url       string
 	Webserver string
 }

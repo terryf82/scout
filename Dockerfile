@@ -1,5 +1,8 @@
 FROM golang:alpine
 
+# Install curl
+RUN apk update && apk add curl
+
 # Install usually static dependencies first
 RUN wget https://github.com/findomain/findomain/releases/latest/download/findomain-linux -O /usr/local/bin/findomain
 RUN chmod o+x /usr/local/bin/findomain

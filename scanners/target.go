@@ -27,8 +27,8 @@ func ScanTargetHandler(ctx context.Context, event events.SQSEvent) error {
 		for _, domain := range request.Domains {
 			// Request scan of domain via SQS
 			var output = ScanDomainRequest{
-				Database: request.Database,
-				Domain:   domain,
+				Target: request.Target,
+				Domain: domain,
 			}
 			outputJson, err := json.Marshal(output)
 			if err != nil {
