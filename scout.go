@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 
 	"franklindata.com.au/scout/scanners"
@@ -17,8 +16,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("cmd recevied: %v\n", *funPtr)
-
 	switch *funPtr {
 	case "scan-target":
 		lambda.Start(scanners.ScanTargetHandler)
@@ -30,22 +27,3 @@ func main() {
 		lambda.Start(scanners.ScanNucleiHandler)
 	}
 }
-
-// Manual execution logic, fold this back in at some point for local development/testing
-/*func main() {
-
-	dbPtr := flag.String("db", "", "name of database")
-	domainsPtr := flag.String("domains", "", "full path of domains file")
-	flag.Parse()
-
-	if *dbPtr == "" || *domainsPtr == "" {
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
-
-	db := *dbPtr
-	domains := *domainsPtr
-
-	scanners.DomainScan(db, domains)
-
-}*/

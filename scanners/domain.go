@@ -69,7 +69,6 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 		utils.Check(err)
 
 		fdCmd.Start()
-
 		fdCmdBuf := bufio.NewReader(fdCmdOut)
 		for {
 			line, _, err := fdCmdBuf.ReadLine()

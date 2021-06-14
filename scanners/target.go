@@ -3,6 +3,7 @@ package scanners
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"franklindata.com.au/scout/utils"
@@ -19,6 +20,7 @@ func init() {
 
 func ScanTargetHandler(ctx context.Context, event events.SQSEvent) error {
 	for _, message := range event.Records {
+		fmt.Printf("ScanTargetHandler: %v\n", message.Body)
 		var request ScanTargetRequest
 		json.Unmarshal([]byte(message.Body), &request)
 

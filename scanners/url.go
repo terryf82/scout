@@ -21,14 +21,14 @@ func init() {
 
 func ScanUrlHandler(ctx context.Context, event events.SQSEvent) error {
 	for _, message := range event.Records {
-		fmt.Printf("ScanDomainHandler: %v\n", message.Body)
+		fmt.Printf("ScanUrlHandler: %v\n", message.Body)
 		var request ScanUrlRequest
 		json.Unmarshal([]byte(message.Body), &request)
 
 		// Call httpx on url
 		httpxCmd := fmt.Sprintf("echo %s | httpx -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 Firefox/88.0\" -silent -json", request.Url)
 		fmt.Printf("-> %s\n", httpxCmd)
-		httpxOut, err := exec.Command("bash", "-c", httpxCmd).Output()
+		httpxOut, err := exec.Command("/bin/sh", "-c", httpxCmd).Output()
 		utils.Check(err)
 
 		if len(httpxOut) == 0 {
