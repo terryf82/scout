@@ -46,7 +46,7 @@ func ScanUrlHandler(ctx context.Context, event events.SQSEvent) error {
 				"MATCH (d:Domain{id:$domain})",
 				"WITH d",
 				"MERGE (u:Url{id:$url})",
-				"SET u:" + request.Target + ", u.scheme = $scheme, u.port = $port, u.path = $path, u.title = $title, u.webserver = $webserver, u.content_type = $content_type, u.method = $method, u.host = $host, u.status_code = $status_code",
+				"SET u:" + request.Target + ", u.scheme = $scheme, u.port = $port, u.path = $path, u.title = $title, u.webserver = $webserver, u.content_type = $content_type, u.method = $method, u.host = $host, u.status_code = $status_code, u.location = CASE WHEN $location = \"\" THEN NULL ELSE $location END",
 				"MERGE (u)-[:BELONGS_TO]->(d)",
 				"RETURN u",
 			},
@@ -62,6 +62,7 @@ func ScanUrlHandler(ctx context.Context, event events.SQSEvent) error {
 				"method":       resp.Method,
 				"host":         resp.Host,
 				"status_code":  resp.StatusCode,
+				"location":     resp.Location,
 			},
 		)
 		utils.Check(err)

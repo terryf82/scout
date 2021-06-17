@@ -28,13 +28,13 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 		var request ScanDomainRequest
 		json.Unmarshal([]byte(message.Body), &request)
 
-		// Merge the "TopLevelDomain" node
+		// Merge the RootDomain node
 		_, err := utils.WriteQuery(
 			"neo4j",
 			[]string{
 				"MERGE (d:Domain{id:$domain})",
-				"ON CREATE SET d:TopLevelDomain:" + request.Target + ", d.first_seen = datetime()",
-				"ON MATCH SET d:TopLevelDomain:" + request.Target + ", d.last_seen = datetime()",
+				"ON CREATE SET d:RootDomain:" + request.Target + ", d.first_seen = datetime()",
+				"ON MATCH SET d:RootDomain:" + request.Target + ", d.last_seen = datetime()",
 				"RETURN d",
 			},
 			map[string]interface{}{

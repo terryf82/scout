@@ -63,6 +63,10 @@ func ScanNucleiHandler(ctx context.Context, event events.SQSEvent) error {
 		}
 		utils.Check(err)
 
+		if nucleiOut.String() == "" {
+			fmt.Printf("no vulnerabilities found\n")
+		}
+
 		nucleiBuf := bufio.NewReader(bytes.NewReader(nucleiOut.Bytes()))
 		for {
 			line, _, err := nucleiBuf.ReadLine()

@@ -26,4 +26,5 @@ type HttpxResponse struct {
 	Method      string
 	Host        string
 	StatusCode  int16 `json:"status-code"`
+	Location    string
 }
