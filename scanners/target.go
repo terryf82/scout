@@ -45,18 +45,3 @@ func ScanTargetHandler(ctx context.Context, event events.SQSEvent) error {
 	}
 	return nil
 }
-
-// Manual execution logic, fold this back in at some point for local development/testing
-/*func main() {
-	dbPtr := flag.String("db", "", "name of database")
-	domainsPtr := flag.String("domains", "", "full path of domains file")
-	flag.Parse()
-
-	if *dbPtr == "" || *domainsPtr == "" {
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
-
-	db := *dbPtr
-	domains := *domainsPtr
-}*/

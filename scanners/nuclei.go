@@ -42,19 +42,17 @@ func ScanNucleiHandler(ctx context.Context, event events.SQSEvent) error {
 			return nil
 		}
 
-		ipOut, err := exec.Command("curl", "https://icanhazip.com").Output()
-		utils.Check(err)
-		fmt.Printf("initiaiting request from ip: %s\n", ipOut)
+		// Lambda allows scanning from multiple IPs automatically, useful for avoiding IP blacklisting
+		// ipOut, err := exec.Command("curl", "https://icanhazip.com").Output()
+		// utils.Check(err)
+		// fmt.Printf("initiaiting request from ip: %s\n", ipOut)
 
 		nucleiCmd := exec.Command("nuclei", "-u", request.Url, "-silent", "-json", "-tags", nucleiTags, "-ud", "/nuclei-templates", "-config", "/nuclei-custom.yaml")
-		// nucleiCmd := exec.Command("nuclei", "-u", request.Url, "-silent", "-json", "-tags", nucleiTags, "-ud", "/nuclei-moved", "-config", "/nuclei-custom.yaml", "-etags", "xss")
 		fmt.Printf("-> %v\n", nucleiCmd)
 
 		var nucleiOut, nucleiErr bytes.Buffer
 		nucleiCmd.Stdout = &nucleiOut
 		nucleiCmd.Stderr = &nucleiErr
-		// nucleiOut, err := nucleiCmd.StdoutPipe()
-		// utils.Check(err)
 
 		err = nucleiCmd.Run()
 		// Additional error checking here, to avoid silent failures
@@ -76,7 +74,6 @@ func ScanNucleiHandler(ctx context.Context, event events.SQSEvent) error {
 
 			fmt.Printf("%s\n", line)
 			var resp NucleiResponse
-			// Hackish approach here of casting byte[] httpxOut to a string to achieve base64-decoding, before converting it back to byte[]
 			json.Unmarshal([]byte(line), &resp)
 
 			_, err = utils.WriteQuery(

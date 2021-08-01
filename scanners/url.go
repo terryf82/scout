@@ -37,7 +37,7 @@ func ScanUrlHandler(ctx context.Context, event events.SQSEvent) error {
 		}
 
 		var resp HttpxResponse
-		// Hackish approach here of casting byte[] httpxOut to a string to achieve base64-decoding, before converting it back to byte[]
+		// Cast byte[] httpxOut to a string to achieve base64-decoding, before converting it back to byte[]
 		json.Unmarshal([]byte(string(httpxOut)), &resp)
 
 		_, err = utils.WriteQuery(

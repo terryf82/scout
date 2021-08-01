@@ -62,7 +62,6 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 
 		// Find any subdomains
 		// TODO enable screenshot capture & s3 upload
-		// fdCmd := exec.Command("findomain", "-t", request.Domain, "-i", "--http-status", "-q", "-s", fmt.Sprintf("./programs/%v/screenshots", db))
 		fdCmd := exec.Command("findomain", "-t", request.Domain, "-i", "--http-status", "-q")
 		fmt.Printf("-> %v\n", fdCmd)
 		fdCmdOut, err := fdCmd.StdoutPipe()
@@ -104,13 +103,6 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 					"MERGE (s:Domain{id:$subdomain})",
 					"ON CREATE SET s:Subdomain:" + request.Target + ", s.first_seen = datetime()",
 					"ON MATCH SET s:Subdomain:" + request.Target + ",s.last_seen = datetime()",
-					// Ip data seems unreliable, disabling for now
-					// "WITH s",
-					// "MERGE (i:Ip{id:$ip})",
-					// "ON CREATE SET i.first_seen = datetime()",
-					// "ON MATCH SET i.last_seen = datetime()",
-					// "WITH s, i",
-					// "MERGE (s)-[:IS_HOSTED_AT]->(i)",
 					"WITH s",
 					"MATCH (d:Domain{id:$domain})",
 					"WITH s, d",
@@ -119,8 +111,7 @@ func ScanDomainHandler(ctx context.Context, event events.SQSEvent) error {
 				},
 				map[string]interface{}{
 					"subdomain": row[0],
-					// "ip":        row[1],
-					"domain": request.Domain,
+					"domain":    request.Domain,
 				},
 			)
 			utils.Check(err)
