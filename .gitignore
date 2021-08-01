@@ -1,4 +1,4 @@
 .env
 .serverless
+.vscode
 programs
-node_modules
