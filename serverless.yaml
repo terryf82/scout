@@ -1,0 +1,153 @@
+service: scout
+useDotenv: true
+
+provider:
+  name: aws
+  stage: dev
+  region: ${env:AWS_REGION}
+  runtime: go1.x
+  memorySize: 128
+  timeout: 600
+  lambdaHashingVersion: "20201221"
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "sqs:SendMessage"
+          Resource:
+            - Fn::GetAtt: [ ScanTargetQueue, Arn ]
+            - Fn::GetAtt: [ ScanDomainQueue, Arn ]
+            - Fn::GetAtt: [ ScanUrlQueue, Arn ]
+            - Fn::GetAtt: [ ScanNucleiTemplateQueue, Arn ]
+
+functions:
+  # Scan a target
+  scan-target:
+    image:
+      uri: ${env:AWS_ECR_REPO}:latest
+      command:
+        - -f
+        - scan-target
+    events:
+      - sqs:
+          batchSize: 1
+          arn:
+            Fn::GetAtt: [ ScanTargetQueue, Arn ]
+    environment:
+      # Send domain scan requests here
+      SCAN_DOMAIN_QUEUE:
+        Ref: ScanDomainQueue
+
+  # Scan a domain
+  scan-domain:
+    image:
+      uri: ${env:AWS_ECR_REPO}:latest
+      command:
+        - -f
+        - scan-domain
+    events:
+      - sqs:
+          batchSize: 1
+          arn:
+            Fn::GetAtt: [ ScanDomainQueue, Arn ]
+    environment:
+      # Send url scan requests here
+      SCAN_URL_QUEUE:
+        Ref: ScanUrlQueue
+
+  # Scan a url
+  scan-url:
+    image:
+      uri: ${env:AWS_ECR_REPO}:latest
+      command:
+        - -f
+        - scan-url
+    events:
+      - sqs:
+          batchSize: 1
+          arn:
+            Fn::GetAtt: [ ScanUrlQueue, Arn ]
+    environment:
+      # Send nuclei scan requests here
+      SCAN_NUCLEI_TEMPLATE_QUEUE:
+        Ref: ScanNucleiTemplateQueue
+
+  # Scan a webserver with nuclei
+  scan-nuclei:
+    image:
+      uri: ${env:AWS_ECR_REPO}:latest
+      command:
+        - -f
+        - scan-nuclei
+    events:
+      - sqs:
+          batchSize: 1
+          arn:
+            Fn::GetAtt: [ ScanNucleiTemplateQueue, Arn ]
+
+resources:
+  Resources:
+    ScanTargetQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "scout-scan-target"
+        VisibilityTimeout: 1080
+        RedrivePolicy:
+          maxReceiveCount: 5
+          deadLetterTargetArn:
+            Fn::GetAtt: [ ScanTargetDLQ, Arn ]
+
+    ScanDomainQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "scout-scan-domain"
+        VisibilityTimeout: 1080
+        RedrivePolicy:
+          maxReceiveCount: 5
+          deadLetterTargetArn:
+            Fn::GetAtt: [ ScanDomainDLQ, Arn ]
+
+    ScanUrlQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "scout-scan-url"
+        VisibilityTimeout: 1080
+        RedrivePolicy:
+          maxReceiveCount: 5
+          deadLetterTargetArn:
+            Fn::GetAtt: [ ScanUrlDLQ, Arn ]
+
+    ScanNucleiTemplateQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "scout-scan-nuclei"
+        VisibilityTimeout: 1080
+        RedrivePolicy:
+          maxReceiveCount: 5
+          deadLetterTargetArn:
+            Fn::GetAtt: [ ScanNucleiTemplateDLQ, Arn ]
+
+    ScanTargetDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "scout-scan-target-dlq"
+        MessageRetentionPeriod: 1209600 # 14 days
+
+    ScanDomainDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "scout-scan-domain-dlq"
+        MessageRetentionPeriod: 1209600 # 14 days
+
+    ScanUrlDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "scout-scan-url-dlq"
+        MessageRetentionPeriod: 1209600 # 14 days
+
+    ScanNucleiTemplateDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "scout-scan-nuclei-dlq"
+        MessageRetentionPeriod: 1209600 # 14 days
