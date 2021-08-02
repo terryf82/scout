@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -9,6 +10,7 @@ import (
 
 func Check(err error) {
 	if err != nil {
+		fmt.Println(err.Error())
 		log.Fatal(err)
 	}
 }
