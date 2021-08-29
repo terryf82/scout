@@ -29,3 +29,33 @@ This is really just the start of what can be learned through graph-based network
 Scout is provided free as an open-source software project. In terms of running costs, it should be possible to keep these very low if you're looking to scan < 100 small-medium networks:
 - AWS Lambda [free tier](https://aws.amazon.com/lambda/pricing/) provides 1M free requests per month and 400,000 GB-seconds of compute time per month
 - Neo4j Aura [free tier](https://neo4j.com/cloud/aura/pricing/) provides a single database with up to 50k nodes and 175k relationships in a multi-tenant environment (you may need more than this if you were to scan a large organisation like Apple that has an entire A-Class range, but for anything smaller it should be sufficient)
+
+## Installation
+These instructions assume usage of an ECR repo. Using another provider such as DockerHub would require additional configuration.
+
+#### 1. Build the image using the included `Dockerfile` and push it to your image repo:
+```
+docker build -t your.repo.here/scout:tag
+docker push your.repo.here/scout:tag
+```
+
+#### 2. Set the following AWS environment variables in `.env`:
+```
+AWS_REGION=<region your lamba will be deployed in>
+AWS_ECR_REPO=your.repo.here/scout:tag
+```
+
+#### 3. Provision a Neo4j Aura cluster
+Visit [https://neo4j.com/cloud/aura/](https://neo4j.com/cloud/aura/) to register your instance (requires valid credit card but free-tier usage is available as mentioned above)
+
+#### 4. Set the following NEO4J environment variables in `.env`:
+```
+NEO4J_SERVER_ADDRESS=<aura connection string>
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=<aura password>
+```
+
+#### 5. Deploy the application to AWS Lambda:
+```
+serverless deploy
+```
