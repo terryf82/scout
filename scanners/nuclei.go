@@ -25,7 +25,7 @@ func ScanNucleiHandler(ctx context.Context, event events.SQSEvent) error {
 			"neo4j",
 			[]string{
 				"MATCH (w:Webserver)-[:SHOULD_BE_SCANNED_WITH]->(t:Tag)",
-				"WHERE $webserver =~ w.regex",
+				"WHERE $webserver =~ w.regex OR w.regex = \".*\"",
 				"RETURN t.id AS tag",
 			},
 			map[string]interface{}{
@@ -47,7 +47,7 @@ func ScanNucleiHandler(ctx context.Context, event events.SQSEvent) error {
 		// utils.Check(err)
 		// fmt.Printf("initiaiting request from ip: %s\n", ipOut)
 
-		nucleiCmd := exec.Command("nuclei", "-u", request.Url, "-silent", "-json", "-tags", nucleiTags, "-ud", "/nuclei-templates", "-config", "/nuclei-custom.yaml")
+		nucleiCmd := exec.Command("nuclei", "-u", request.Url, "-silent", "-json", "-tags", nucleiTags, "-ud", "/nuclei-templates", "-timeout", "30")
 		fmt.Printf("-> %v\n", nucleiCmd)
 
 		var nucleiOut, nucleiErr bytes.Buffer
@@ -82,7 +82,7 @@ func ScanNucleiHandler(ctx context.Context, event events.SQSEvent) error {
 					"MATCH (u:Url{id:$url})",
 					"WITH u",
 					"MERGE (v:VulnReport:" + request.Target + "{host:$host,template_id:$template_id})",
-					"MERGE (u)-[:IS_VULNERABLE_TO]->(v:VulnReport)",
+					"MERGE (u)-[:IS_VULNERABLE_TO]->(v)",
 					"SET v.severity = $severity, v.type = $type, v.matched = $matched, v.ip = $ip, v.discovered = datetime()",
 					"RETURN v",
 				},

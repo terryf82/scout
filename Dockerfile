@@ -1,6 +1,6 @@
 FROM golang:alpine
 
-# Install curl
+# Install required packages
 RUN apk update && apk add curl
 
 # Install usually static dependencies first
@@ -8,15 +8,21 @@ RUN wget https://github.com/findomain/findomain/releases/latest/download/findoma
 RUN chmod o+x /usr/local/bin/findomain
 
 ENV GO111MODULE=on
-RUN go get -v github.com/projectdiscovery/httpx/cmd/httpx
-RUN go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@v2.3.8
+RUN go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@v2.4.3
 RUN nuclei -version
 RUN nuclei -update-templates
 
-# /root folder isn't accessible within lambda context
+RUN go get -v github.com/projectdiscovery/httpx/cmd/httpx
+
+# /root folder isn't accessible within lambda context, move templates and config dir to /
 RUN cp -R ~/nuclei-templates /nuclei-templates
 RUN chmod -R 777 /nuclei-templates
-COPY nuclei-custom.yaml /
+
+RUN cp -R ~/.config /
+ENV HOME=/
+
+# Copy in custom templates
+COPY ./custom-templates/ /nuclei-templates/
 
 WORKDIR /go/src/app
 COPY . .

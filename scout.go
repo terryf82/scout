@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
+	"time"
 
 	"franklindata.com.au/scout/scanners"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -25,5 +27,8 @@ func main() {
 		lambda.Start(scanners.ScanUrlHandler)
 	case "scan-nuclei":
 		lambda.Start(scanners.ScanNucleiHandler)
+	case "sleep":
+		fmt.Println("Sleeping for 5 minutes")
+		time.Sleep(300 * time.Second)
 	}
 }
