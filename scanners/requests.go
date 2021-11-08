@@ -20,6 +20,12 @@ type ScanUrlRequest struct {
 	Url    string
 }
 
+type ScanPortRequest struct {
+	Target string
+	Url    string
+	Ip     string
+}
+
 type ScanNucleiRequest struct {
 	Target    string
 	Url       string

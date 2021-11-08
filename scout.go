@@ -27,6 +27,8 @@ func main() {
 		lambda.Start(scanners.ScanUrlHandler)
 	case "scan-nuclei":
 		lambda.Start(scanners.ScanNucleiHandler)
+	case "scan-port":
+		lambda.Start(scanners.ScanPortHandler)
 	case "sleep":
 		fmt.Println("Sleeping for 5 minutes")
 		time.Sleep(300 * time.Second)
