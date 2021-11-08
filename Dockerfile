@@ -1,18 +1,21 @@
 FROM golang:alpine
 
 # Install required packages
-RUN apk update && apk add curl
+RUN apk update && apk add curl build-base gcc abuild binutils binutils-doc gcc-doc libpcap-dev
 
 # Install usually static dependencies first
 RUN wget https://github.com/findomain/findomain/releases/latest/download/findomain-linux -O /usr/local/bin/findomain
 RUN chmod o+x /usr/local/bin/findomain
 
 ENV GO111MODULE=on
-RUN go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@v2.4.3
+RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
+
 RUN nuclei -version
 RUN nuclei -update-templates
 
 RUN go get -v github.com/projectdiscovery/httpx/cmd/httpx
+
+RUN go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
 
 # /root folder isn't accessible within lambda context, move templates and config dir to /
 RUN cp -R ~/nuclei-templates /nuclei-templates

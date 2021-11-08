@@ -84,6 +84,24 @@ func ScanUrlHandler(ctx context.Context, event events.SQSEvent) error {
 			})
 			utils.Check(err)
 		}
+
+		// Queue port scan for found hosts
+		if resp.Host != "" {
+			fmt.Printf("Requesting port scan of host %v\n", resp.Host)
+			portRequest := &ScanPortRequest{
+				Target: request.Target,
+				Url:    resp.Url,
+				Ip:     resp.Host,
+			}
+			portRequestJson, err := json.Marshal(portRequest)
+			utils.Check(err)
+
+			_, err = sqsQueue.SendMessage(&sqs.SendMessageInput{
+				MessageBody: aws.String(string(portRequestJson)),
+				QueueUrl:    aws.String(os.Getenv("SCAN_PORT_QUEUE")),
+			})
+			utils.Check(err)
+		}
 	}
 	return nil
 }

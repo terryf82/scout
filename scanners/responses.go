@@ -28,3 +28,8 @@ type HttpxResponse struct {
 	StatusCode  int16 `json:"status-code"`
 	Location    string
 }
+
+type NaabuResponse struct {
+	Ip   string
+	Port int16
+}

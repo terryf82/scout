@@ -16,10 +16,11 @@ provider:
           Action:
             - "sqs:SendMessage"
           Resource:
-            - Fn::GetAtt: [ ScanTargetQueue, Arn ]
-            - Fn::GetAtt: [ ScanDomainQueue, Arn ]
-            - Fn::GetAtt: [ ScanUrlQueue, Arn ]
-            - Fn::GetAtt: [ ScanNucleiTemplateQueue, Arn ]
+            - Fn::GetAtt: [ScanTargetQueue, Arn]
+            - Fn::GetAtt: [ScanDomainQueue, Arn]
+            - Fn::GetAtt: [ScanUrlQueue, Arn]
+            - Fn::GetAtt: [ScanNucleiTemplateQueue, Arn]
+            - Fn::GetAtt: [ScanPortQueue, Arn]
 
 functions:
   # Scan a target
@@ -33,7 +34,7 @@ functions:
       - sqs:
           batchSize: 1
           arn:
-            Fn::GetAtt: [ ScanTargetQueue, Arn ]
+            Fn::GetAtt: [ScanTargetQueue, Arn]
     environment:
       # Send domain scan requests here
       SCAN_DOMAIN_QUEUE:
@@ -50,7 +51,7 @@ functions:
       - sqs:
           batchSize: 1
           arn:
-            Fn::GetAtt: [ ScanDomainQueue, Arn ]
+            Fn::GetAtt: [ScanDomainQueue, Arn]
     environment:
       # Send url scan requests here
       SCAN_URL_QUEUE:
@@ -67,11 +68,14 @@ functions:
       - sqs:
           batchSize: 1
           arn:
-            Fn::GetAtt: [ ScanUrlQueue, Arn ]
+            Fn::GetAtt: [ScanUrlQueue, Arn]
     environment:
       # Send nuclei scan requests here
       SCAN_NUCLEI_TEMPLATE_QUEUE:
         Ref: ScanNucleiTemplateQueue
+      # Send port scan requests here
+      SCAN_PORT_QUEUE:
+        Ref: ScanPortQueue
 
   # Scan a webserver with nuclei
   scan-nuclei:
@@ -84,7 +88,20 @@ functions:
       - sqs:
           batchSize: 1
           arn:
-            Fn::GetAtt: [ ScanNucleiTemplateQueue, Arn ]
+            Fn::GetAtt: [ScanNucleiTemplateQueue, Arn]
+
+  # Scan a host for open ports
+  scan-port:
+    image:
+      uri: ${env:AWS_ECR_REPO}:latest
+      command:
+        - -f
+        - scan-port
+    events:
+      - sqs:
+          batchSize: 1
+          arn:
+            Fn::GetAtt: [ScanPortQueue, Arn]
 
 resources:
   Resources:
@@ -96,7 +113,7 @@ resources:
         RedrivePolicy:
           maxReceiveCount: 5
           deadLetterTargetArn:
-            Fn::GetAtt: [ ScanTargetDLQ, Arn ]
+            Fn::GetAtt: [ScanTargetDLQ, Arn]
 
     ScanDomainQueue:
       Type: AWS::SQS::Queue
@@ -106,7 +123,7 @@ resources:
         RedrivePolicy:
           maxReceiveCount: 5
           deadLetterTargetArn:
-            Fn::GetAtt: [ ScanDomainDLQ, Arn ]
+            Fn::GetAtt: [ScanDomainDLQ, Arn]
 
     ScanUrlQueue:
       Type: AWS::SQS::Queue
@@ -116,7 +133,7 @@ resources:
         RedrivePolicy:
           maxReceiveCount: 5
           deadLetterTargetArn:
-            Fn::GetAtt: [ ScanUrlDLQ, Arn ]
+            Fn::GetAtt: [ScanUrlDLQ, Arn]
 
     ScanNucleiTemplateQueue:
       Type: AWS::SQS::Queue
@@ -126,7 +143,17 @@ resources:
         RedrivePolicy:
           maxReceiveCount: 5
           deadLetterTargetArn:
-            Fn::GetAtt: [ ScanNucleiTemplateDLQ, Arn ]
+            Fn::GetAtt: [ScanNucleiTemplateDLQ, Arn]
+
+    ScanPortQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "scout-scan-port"
+        VisibilityTimeout: 1080
+        RedrivePolicy:
+          maxReceiveCount: 5
+          deadLetterTargetArn:
+            Fn::GetAtt: [ScanPortDLQ, Arn]
 
     ScanTargetDLQ:
       Type: AWS::SQS::Queue
@@ -150,4 +177,10 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: "scout-scan-nuclei-dlq"
+        MessageRetentionPeriod: 1209600 # 14 days
+
+    ScanPortDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "scout-scan-port-dlq"
         MessageRetentionPeriod: 1209600 # 14 days
