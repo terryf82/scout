@@ -13,6 +13,7 @@ The functions currently included are:
 2. scan-domain: receives a domain to scan, returns a list of found subdomains via [Findomain](https://github.com/Findomain/Findomain)
 3. scan-url: receives a subdomain url to scan, returns webserver details via [httpx](https://github.com/projectdiscovery/httpx)
 4. scan-nuclei: receives a url and webserver, executes relevant nuclei templates
+5. scan-port: receives an in-use IP address, executes a basic port scan
 
 ## Why is it useful?
 Fully exploring an organisation's network (e.g. for a bug bounty program) often involves a lot of manual work, and the use of many different tools. For large networks this becomes problematic if those tools are running against a long list of targets (such as urls) sequentially, when they could run much faster if executed in parallel. Threading can help in this respect, but still leaves you vulnerable to IP blacklisting. Scout distributes work across AWS Lambda functions which execute from a large pool of AWS IPs, reducing the chance of your activities being thwarted by IP filtering.
