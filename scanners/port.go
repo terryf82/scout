@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"sort"
 
 	"franklindata.com.au/scout/utils"
 	"github.com/aws/aws-lambda-go/events"
@@ -33,7 +34,7 @@ func ScanPortHandler(event events.SQSEvent) error {
 		naabuCmd.Start()
 		naabuCmdBuf := bufio.NewReader(naabuCmdOut)
 
-		var foundPorts []int16
+		var foundPorts []int
 		for {
 			line, _, err := naabuCmdBuf.ReadLine()
 			if err == io.EOF {
@@ -48,7 +49,9 @@ func ScanPortHandler(event events.SQSEvent) error {
 		}
 
 		fmt.Printf("found open ports %v on %v\n", foundPorts, request.Url)
+
 		if len(foundPorts) != 0 {
+			sort.Ints(foundPorts)
 			_, err = utils.WriteQuery(
 				"neo4j",
 				[]string{

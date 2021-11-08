@@ -31,5 +31,5 @@ type HttpxResponse struct {
 
 type NaabuResponse struct {
 	Ip   string
-	Port int16
+	Port int
 }

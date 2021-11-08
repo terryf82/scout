@@ -47,7 +47,7 @@ func ScanNucleiHandler(ctx context.Context, event events.SQSEvent) error {
 		// utils.Check(err)
 		// fmt.Printf("initiaiting request from ip: %s\n", ipOut)
 
-		nucleiCmd := exec.Command("nuclei", "-u", request.Url, "-silent", "-json", "-tags", nucleiTags, "-ud", "/nuclei-templates", "-timeout", "30")
+		nucleiCmd := exec.Command("nuclei", "-u", request.Url, "-silent", "-json", "-tags", nucleiTags, "-ud", "/nuclei-templates", "-nut", "-timeout", "30")
 		fmt.Printf("-> %v\n", nucleiCmd)
 
 		var nucleiOut, nucleiErr bytes.Buffer
