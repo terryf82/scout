@@ -8,7 +8,7 @@ RUN wget https://github.com/findomain/findomain/releases/latest/download/findoma
 RUN chmod o+x /usr/local/bin/findomain
 
 ENV GO111MODULE=on
-RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
+RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@v2.4.3
 
 RUN nuclei -version
 RUN nuclei -update-templates
